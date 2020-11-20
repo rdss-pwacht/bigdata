@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .error {
+        color: red;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega-lite@4.8.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 400, "continuousHeight": 300}}, "data": {"name": "data-187633d59a2203a7e851deed4ab59726"}, "mark": "bar", "encoding": {"x": {"type": "nominal", "axis": {"title": "Category Name"}, "field": "category"}, "y": {"type": "quantitative", "axis": {"title": "Category name and description correlation"}, "field": "corr"}}, "$schema": "https://vega.github.io/schema/vega-lite/v4.8.1.json", "datasets": {"data-187633d59a2203a7e851deed4ab59726": [{"category": "Tops", "corr": 6.512554028459036}, {"category": "Home D\u00e9cor", "corr": 0.5796410989360012}, {"category": "Jewelry", "corr": 3.8113433609118728}, {"category": "Other", "corr": 38.447319778188536}, {"category": "Swimwear", "corr": 1.4848869160853941}, {"category": "Apparel", "corr": 55.003427004797814}, {"category": "Collectibles", "corr": 2.839442436757873}, {"category": "Makeup", "corr": 4.448617028959342}, {"category": "Fragrance", "corr": 8.841689306001483}, {"category": "Dresses", "corr": 0.6359543686349928}, {"category": "Office supplies", "corr": 0.0285932138772398}, {"category": "Shoes", "corr": 3.331939632859475}, {"category": "Gear", "corr": 32.144048016005335}, {"category": "Athletic Apparel", "corr": 0.0022324252323582595}, {"category": "Cell Phones & Accessories", "corr": 0.0018765246762994933}, {"category": "Jeans", "corr": 11.065596457237753}, {"category": "Underwear", "corr": 1.4237508879943168}, {"category": "Skin Care", "corr": 0.5094175212815872}, {"category": "Toys", "corr": 1.1262423054437911}, {"category": "Pants", "corr": 35.129911960489586}, {"category": "Girls (4+)", "corr": 0.41330446762448336}, {"category": "Antique", "corr": 9.88019038240604}, {"category": "Sweaters", "corr": 0.32725441933318417}, {"category": "Maternity", "corr": 19.952352590827875}, {"category": "Bedding", "corr": 2.104516434145188}, {"category": "Exercise", "corr": 2.4228799800174845}, {"category": "Boys (4+)", "corr": 0.46111073438665495}, {"category": "Storage & Organization", "corr": 0.03473428273706148}, {"category": "Skirts", "corr": 0.9976470588235296}, {"category": "Hair Care", "corr": 0.4118404118404118}, {"category": "Pet Supplies", "corr": 0.12626262626262627}, {"category": "Book", "corr": 175.33495736906212}, {"category": "Tools & Accessories", "corr": 1.141325162772884}, {"category": "Team Sports", "corr": 0.0942951438000943}, {"category": "Accessories", "corr": 18.762936807500306}, {"category": "Shorts", "corr": 238.94952251023193}, {"category": "Outdoors", "corr": 1.574074074074074}, {"category": "Bath & Body", "corr": 23.266305748904355}, {"category": "Toy", "corr": 24.35967302452316}, {"category": "Art", "corr": 363.5670731707317}, {"category": "Footwear", "corr": 5.555555555555555}, {"category": "Housewares", "corr": 0.3236245954692557}, {"category": "Media", "corr": 3.042578865712808}, {"category": "Glass", "corr": 699.3243243243243}, {"category": "Books", "corr": 6.979727995894278}, {"category": "Electronics", "corr": 5.496518871381459}, {"category": "Diapering", "corr": 0.08429334082607474}, {"category": "Bath", "corr": 473.32214765100673}, {"category": "Children", "corr": 144.36392914653783}, {"category": "Magazines", "corr": 8.67579908675799}, {"category": "Artwork", "corr": 15.268987341772153}, {"category": "Automotive", "corr": 0.6048387096774194}, {"category": "Serving", "corr": 5.885471898197243}, {"category": "Clothing", "corr": 7.466986794717887}, {"category": "Supplies", "corr": 55.485611510791365}, {"category": "Feeding", "corr": 1.0400531090949325}, {"category": "Golf", "corr": 50.43695380774032}, {"category": "Music", "corr": 144.7520184544406}, {"category": "Pets", "corr": 166.66666666666669}, {"category": "Nursery", "corr": 7.389749702026221}, {"category": "Furniture", "corr": 29.05027932960894}, {"category": "Musical instruments", "corr": 0.29069767441860467}, {"category": "Safety", "corr": 120.75}, {"category": "Crochet", "corr": 254.27350427350427}, {"category": "Home Decor", "corr": 80.50314465408806}, {"category": "Holidays", "corr": 179.07692307692307}, {"category": "Strollers", "corr": 1.0482180293501049}, {"category": "Suits", "corr": 56.060606060606055}, {"category": "Weddings", "corr": 11.783960720130933}, {"category": "Others", "corr": 77.34627831715211}, {"category": "Knitting", "corr": 30.67484662576687}, {"category": "Patterns", "corr": 31.683168316831683}, {"category": "Woodworking", "corr": 1.6528925619834711}, {"category": "Potty Training", "corr": 4.516129032258064}, {"category": "Candles", "corr": 514.0625}, {"category": "Quilts", "corr": 3.225806451612903}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div class="error" style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

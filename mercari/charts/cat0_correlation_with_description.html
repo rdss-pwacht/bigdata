@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .error {
+        color: red;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega-lite@4.8.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 400, "continuousHeight": 300}}, "data": {"name": "data-98f7ac6c2b117fa7b729ce773d8278e0"}, "mark": "bar", "encoding": {"x": {"type": "nominal", "axis": {"title": "Category Name"}, "field": "category"}, "y": {"type": "quantitative", "axis": {"title": "Category name and description correlation"}, "field": "corr"}}, "$schema": "https://vega.github.io/schema/vega-lite/v4.8.1.json", "datasets": {"data-98f7ac6c2b117fa7b729ce773d8278e0": [{"category": "Men", "corr": 20.98953885567891}, {"category": "Electronics", "corr": 0.1222593528404923}, {"category": "Women", "corr": 3.348670872072284}, {"category": "Home", "corr": 6.886593685079047}, {"category": "Vintage & Collectibles", "corr": 0.004298302170642596}, {"category": "Beauty", "corr": 2.4525206060810194}, {"category": "Other", "corr": 16.96985733500915}, {"category": "Kids", "corr": 2.0776058897535066}, {"category": "Handmade", "corr": 12.029051293690422}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div class="error" style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

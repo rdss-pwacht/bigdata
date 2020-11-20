@@ -1,0 +1,14 @@
+.DS_Store
+geckodriver.log
+
+#cache
+mercari/__pycache__/
+mercari/bigquery/__pycache__
+cache_dir
+
+#auth
+mercari/bigquery/rd-rdss-playground-ce9ed0ca0862.json
+
+#data
+test.tsv
+train.tsv
