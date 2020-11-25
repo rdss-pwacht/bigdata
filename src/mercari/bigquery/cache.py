@@ -4,9 +4,12 @@ from typing import Callable
 from typing import Protocol
 import pandas as pd
 
+
 class _CacheConfig(Protocol):
     enabled: bool
     directory: str
+
+
 def cache_dataframe(
     cache_id: str,
     cache_miss_callback: Callable[..., pd.DataFrame],
@@ -26,4 +29,5 @@ def cache_dataframe(
         else:
             result = cache_miss_callback(*args, **kwargs)
         return result
+
     return factory

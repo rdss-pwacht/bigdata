@@ -1,0 +1,21 @@
+# cached / optimized python
+__pycache__/
+
+# distribution folder
+/dist/
+
+# cache dir
+/cache_dir/
+
+# google credentials
+/mercari/bigquery/rd-rdss-playground-ce9ed0ca0862.json
+
+# log files
+*.log
+
+# data files
+*.tsv
+
+# miscellaneous
+.DS_Store
+
