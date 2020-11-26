@@ -14,13 +14,14 @@ selenium = "^3.141.0"
 flake8-bandit = "^2.1.2"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
 black = "^20.8b1"
-nox = "^2020.8.22"
 flake8 = "^3.8.4"
+flake8-bandit = "^2.1.2"
 flake8-black = "^0.2.1"
-flake8-import-order = "^0.18.1"
 flake8-bugbear = "^20.11.1"
+flake8-import-order = "^0.18.1"
+nox = "^2020.8.22"
+pytest = "^5.2"
 safety = "^1.9.0"
 
 [build-system]
