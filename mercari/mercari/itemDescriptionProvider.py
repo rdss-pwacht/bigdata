@@ -7,13 +7,13 @@ from pathlib import Path
 import altair as alt
 import pandas as pd
 import time
+import re
 
 #Aufgabe 4 Find the most commonly used words in the item_description column.
 def getMostCommonUsedWords(train_data):
-    global Counter
-    Counter = Counter(train_data.item_description) 
-    most_occur = Counter.most_common(10)
-    print(most_occur)
+    train_data = train_data.assign(item_description=train_data.item_description.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
+    commonlyused:pd.Series = train_data.item_description.str.split(expand=True).stack().value_counts()
+    commonlyused.to_csv('commonlyused.csv')
 
 #download once and store local the corpora stopwords
 def useStopWordsLocal():
@@ -60,7 +60,7 @@ def main():
     t0 = time.time()
     train_data = categoryFlatten(load_train())
     train_data = removeStopWordsFromItemDescription(train_data)
-    fuzzySearchCategoryInDescription(train_data)
+    #fuzzySearchCategoryInDescription(train_data)
     getMostCommonUsedWords(train_data)
     print(f'Done in {time.time() - t0:.0f} s')
 

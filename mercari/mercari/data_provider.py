@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def load_train(filePath='train.tsv'):
+def load_train(filePath='mercari/mercari/train.tsv'):
     pd.set_option('mode.chained_assignment', None)
     path = str(Path().absolute())
     df_train = pd.read_csv(path + '/'+filePath ,sep = '\t')
