@@ -1,11 +1,11 @@
 import os
 from google.cloud import bigquery
 import pandas as pd
-from cache import cache_dataframe
+from .cache import cache_dataframe
 from typing import NamedTuple
 from time import sleep
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "path/xxx.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
 
 
 def list_datasets():
