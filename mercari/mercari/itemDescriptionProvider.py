@@ -1,4 +1,3 @@
-from data_provider import load_train
 from categoryProvider import categoryFlatten
 from collections import Counter
 import nltk
@@ -6,13 +5,33 @@ from nltk.corpus import stopwords
 from pathlib import Path
 import altair as alt
 import pandas as pd
-import time
 import re
+from typing import NamedTuple
+from time import sleep
+from typing import Any
+from typing import Callable
+from typing import Protocol
+import os
+import string
+from google.cloud import bigquery
+from sklearn.feature_extraction.text import TfidfVectorizer 
+pd.options.mode.chained_assignment = None  # default='warn'
+
 
 #Aufgabe 4 Find the most commonly used words in the item_description column.
 def getMostCommonUsedWords(train_data):
-    train_data = train_data.assign(item_description=train_data.item_description.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
+    #string.punctuation
+    train_data['name_len'] = train_data['name'].apply(lambda x: len(x))
+    train_data['des_len'] = train_data['item_description'].apply(lambda x: len(x))
+    train_data['name_desc_len_ratio'] = train_data['name_len']/train_data['des_len']
+    train_data['desc_word_count'] = train_data['item_description'].apply(lambda x: len(x.split()))
+    train_data['mean_des'] = train_data['item_description'].apply(lambda x: 0 if len(x) == 0 else float(len(x.split())) / len(x)) * 10
+    train_data['name_word_count'] = train_data['name'].apply(lambda x: len(x.split()))
+    #example = train_data[['name_len', 'des_len', 'name_desc_len_ratio', 'desc_word_count', 'mean_des','name_word_count']]
+
+    train_data = train_data.assign(item_description=train_data.item_description_without_stopwords.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
     commonlyused:pd.Series = train_data.item_description.str.split(expand=True).stack().value_counts()
+    
     commonlyused.to_csv('commonlyused.csv')
 
 #download once and store local the corpora stopwords
@@ -30,8 +49,9 @@ def useStopWordsLocal():
 def removeStopWordsFromItemDescription(train_data):
     stop = useStopWordsLocal()
     train_data = train_data[train_data['item_description'].notnull()]
+    train_data = train_data.assign(item_description=train_data.item_description.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
     train_data['item_description_without_stopwords'] = train_data['item_description'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
-    #print(train_data[['item_description','item_description_without_stopwords']].tail())
+    
     return train_data
 
 #Aufgabe 6 
@@ -55,14 +75,66 @@ def fuzzySearchCategoryInDescription(train_data):
             )
         chart.save(categoryColumn + '_correlation_with_description.html')
 
+def browse_table_data(project,table_id):
+    client = bigquery.Client(project)
+    rows_iter = client.list_rows(table_id)
+    dataframe = rows_iter.to_dataframe()
+    return dataframe
+
+project = 'rd-rdss-playground'
+table_id = 'mercari_price.train'
+
+class MyCacheConfig(NamedTuple):
+    enabled: bool
+    directory: str
+def expensive_function(a: int, b: str, c: str) -> pd.DataFrame:
+    return browse_table_data(project, table_id)
+
+class _CacheConfig(Protocol):
+    enabled: bool
+    directory: str
+def cache_dataframe(
+    cache_id: str,
+    cache_miss_callback: Callable[..., pd.DataFrame],
+    *args: Any,
+    **kwargs: Any,
+) -> Callable[[_CacheConfig], pd.DataFrame]:
+    def factory(cache_config: _CacheConfig) -> pd.DataFrame:
+        if cache_config.enabled:
+            cache_dir = cache_config.directory
+            os.makedirs(cache_dir, exist_ok=True)
+            file_path = f"{cache_dir}/{cache_id}.pkl.bz2"
+            if os.path.exists(file_path):
+                result = pd.read_pickle(file_path)
+            else:
+                result = cache_miss_callback(*args, **kwargs)
+                result.to_pickle(file_path)
+        else:
+            result = cache_miss_callback(*args, **kwargs)
+        return result
+    return factory
+
+def browse_cache_data():
+    my_cache_conf = MyCacheConfig(True, "./cache_dir")
+    result = cache_dataframe(table_id, expensive_function, 2, "hello world", c="test")(my_cache_conf)
+    return result
+
+
 
 def main():
-    t0 = time.time()
-    train_data = categoryFlatten(load_train())
-    train_data = removeStopWordsFromItemDescription(train_data)
+    #train_data = categoryFlatten(browse_cache_data())
+    train_data = removeStopWordsFromItemDescription(browse_cache_data())
     #fuzzySearchCategoryInDescription(train_data)
     getMostCommonUsedWords(train_data)
-    print(f'Done in {time.time() - t0:.0f} s')
+
+
 
 if __name__ == '__main__':
     main()
+
+
+
+
+ 
+
+
