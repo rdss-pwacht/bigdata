@@ -1,7 +1,11 @@
 {
 	"folders": [
 		{
-			"path": ".."
+			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"python.pythonPath": "mercari/.venv/bin/python",
+		"git.ignoreLimitWarning": true
+	}
 }
