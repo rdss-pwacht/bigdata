@@ -29,8 +29,8 @@ def getMostCommonUsedWords(train_data):
     train_data['name_word_count'] = train_data['name'].apply(lambda x: len(x.split()))
     #example = train_data[['name_len', 'des_len', 'name_desc_len_ratio', 'desc_word_count', 'mean_des','name_word_count']]
 
-    train_data = train_data.assign(item_description=train_data.item_description_without_stopwords.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
-    commonlyused:pd.Series = train_data.item_description.str.split(expand=True).stack().value_counts()
+    #train_data = train_data.assign(item_description=train_data.item_description_without_stopwords.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
+    commonlyused:pd.Series = train_data.item_description_without_stopwords.str.split(expand=True).stack().value_counts()
     
     commonlyused.to_csv('commonlyused.csv')
 
@@ -50,6 +50,7 @@ def removeStopWordsFromItemDescription(train_data):
     stop = useStopWordsLocal()
     train_data = train_data[train_data['item_description'].notnull()]
     train_data = train_data.assign(item_description=train_data.item_description.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
+    
     train_data['item_description_without_stopwords'] = train_data['item_description'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
     
     return train_data
