@@ -34,6 +34,15 @@ def getMostCommonUsedWords(train_data):
     
     commonlyused.to_csv('commonlyused.csv')
 
+#Cleanup-CommonUsedWords
+def cleanUpCommonUsedWords():
+   common_used_words_data:pd.DataFrame = pd.read_csv('commonlyused.csv')
+   #282807-113610
+   common_used_words_data.drop(common_used_words_data.tail(169197).index, inplace=True)
+   #print(common_used_words_data)
+   common_used_words_data.to_csv('commonlyusedcleaned.csv', index=False)
+
+
 #download once and store local the corpora stopwords
 def useStopWordsLocal():
     path = str(Path().absolute())
@@ -124,11 +133,11 @@ def browse_cache_data():
 
 def main():
     #train_data = categoryFlatten(browse_cache_data())
-    train_data = removeStopWordsFromItemDescription(browse_cache_data())
+    #train_data = removeStopWordsFromItemDescription(browse_cache_data())
     #fuzzySearchCategoryInDescription(train_data)
-    getMostCommonUsedWords(train_data)
-
-
+    #getMostCommonUsedWords(train_data)
+    cleanUpCommonUsedWords()
+   
 
 if __name__ == '__main__':
     main()
