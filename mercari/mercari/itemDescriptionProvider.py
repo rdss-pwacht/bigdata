@@ -17,29 +17,37 @@ from google.cloud import bigquery
 from sklearn.feature_extraction.text import TfidfVectorizer 
 pd.options.mode.chained_assignment = None  # default='warn'
 
+project = 'rd-rdss-playground'
+table_id = 'mercari_price.train'
 
 #Aufgabe 4 Find the most commonly used words in the item_description column.
 def getMostCommonUsedWords(train_data):
     #string.punctuation
-    train_data['name_len'] = train_data['name'].apply(lambda x: len(x))
-    train_data['des_len'] = train_data['item_description'].apply(lambda x: len(x))
-    train_data['name_desc_len_ratio'] = train_data['name_len']/train_data['des_len']
-    train_data['desc_word_count'] = train_data['item_description'].apply(lambda x: len(x.split()))
-    train_data['mean_des'] = train_data['item_description'].apply(lambda x: 0 if len(x) == 0 else float(len(x.split())) / len(x)) * 10
-    train_data['name_word_count'] = train_data['name'].apply(lambda x: len(x.split()))
+    # train_data['name_len'] = train_data['name'].apply(lambda x: len(x))
+    # train_data['des_len'] = train_data['item_description'].apply(lambda x: len(x))
+    # train_data['name_desc_len_ratio'] = train_data['name_len']/train_data['des_len']
+    # train_data['desc_word_count'] = train_data['item_description'].apply(lambda x: len(x.split()))
+    # train_data['mean_des'] = train_data['item_description'].apply(lambda x: 0 if len(x) == 0 else float(len(x.split())) / len(x)) * 10
+    # train_data['name_word_count'] = train_data['name'].apply(lambda x: len(x.split()))
     #example = train_data[['name_len', 'des_len', 'name_desc_len_ratio', 'desc_word_count', 'mean_des','name_word_count']]
 
     #train_data = train_data.assign(item_description=train_data.item_description_without_stopwords.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
-    commonlyused:pd.Series = train_data.item_description_without_stopwords.str.split(expand=True).stack().value_counts()
-    
-    commonlyused.to_csv('commonlyused.csv')
+    df = train_data.item_description_without_stopwords.str.split(expand=True).stack().value_counts().rename_axis('word').reset_index(name='count')
+
+    #df = commonlyused.to_frame()
+    #print(df.tail(200))
+    #df.columns = ['word', 'count']
+    df.to_csv('commonlyused.csv', index=False)
 
 #Cleanup-CommonUsedWords
 def cleanUpCommonUsedWords():
    common_used_words_data:pd.DataFrame = pd.read_csv('commonlyused.csv')
+   # such index der ersten 1
+   common_used_words_data = common_used_words_data.loc[common_used_words_data['count']>1]
    #282807-113610
-   common_used_words_data.drop(common_used_words_data.tail(169197).index, inplace=True)
+   #common_used_words_data.drop(common_used_words_data.tail(169197).index, inplace=True)
    #print(common_used_words_data)
+   # letzte Wvokommen der 1 neben wort
    common_used_words_data.to_csv('commonlyusedcleaned.csv', index=False)
 
 
@@ -91,14 +99,9 @@ def browse_table_data(project,table_id):
     dataframe = rows_iter.to_dataframe()
     return dataframe
 
-project = 'rd-rdss-playground'
-table_id = 'mercari_price.train'
-
 class MyCacheConfig(NamedTuple):
     enabled: bool
     directory: str
-def expensive_function(a: int, b: str, c: str) -> pd.DataFrame:
-    return browse_table_data(project, table_id)
 
 class _CacheConfig(Protocol):
     enabled: bool
@@ -126,16 +129,15 @@ def cache_dataframe(
 
 def browse_cache_data():
     my_cache_conf = MyCacheConfig(True, "./cache_dir")
-    result = cache_dataframe(table_id, expensive_function, 2, "hello world", c="test")(my_cache_conf)
+    result = cache_dataframe(table_id, browse_table_data, project, table_id)(my_cache_conf)
     return result
-
 
 
 def main():
     #train_data = categoryFlatten(browse_cache_data())
-    #train_data = removeStopWordsFromItemDescription(browse_cache_data())
+    train_data = removeStopWordsFromItemDescription(browse_cache_data())
     #fuzzySearchCategoryInDescription(train_data)
-    #getMostCommonUsedWords(train_data)
+    getMostCommonUsedWords(train_data)
     cleanUpCommonUsedWords()
    
 
