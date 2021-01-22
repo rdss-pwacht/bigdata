@@ -1,4 +1,4 @@
-from categoryProvider import categoryFlatten
+#from categoryProvider import categoryFlatten
 from collections import Counter
 import nltk
 from nltk.corpus import stopwords
@@ -15,6 +15,7 @@ import os
 import string
 from google.cloud import bigquery
 from sklearn.feature_extraction.text import TfidfVectorizer 
+from tqdm import tqdm
 pd.options.mode.chained_assignment = None  # default='warn'
 
 project = 'rd-rdss-playground'
@@ -22,15 +23,6 @@ table_id = 'mercari_price.train'
 
 #Aufgabe 4 Find the most commonly used words in the item_description column.
 def getMostCommonUsedWords(train_data):
-    #string.punctuation
-    # train_data['name_len'] = train_data['name'].apply(lambda x: len(x))
-    # train_data['des_len'] = train_data['item_description'].apply(lambda x: len(x))
-    # train_data['name_desc_len_ratio'] = train_data['name_len']/train_data['des_len']
-    # train_data['desc_word_count'] = train_data['item_description'].apply(lambda x: len(x.split()))
-    # train_data['mean_des'] = train_data['item_description'].apply(lambda x: 0 if len(x) == 0 else float(len(x.split())) / len(x)) * 10
-    # train_data['name_word_count'] = train_data['name'].apply(lambda x: len(x.split()))
-    #example = train_data[['name_len', 'des_len', 'name_desc_len_ratio', 'desc_word_count', 'mean_des','name_word_count']]
-
     #train_data = train_data.assign(item_description=train_data.item_description_without_stopwords.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
     df = train_data.item_description_without_stopwords.str.split(expand=True).stack().value_counts().rename_axis('word').reset_index(name='count')
 
@@ -42,13 +34,17 @@ def getMostCommonUsedWords(train_data):
 #Cleanup-CommonUsedWords
 def cleanUpCommonUsedWords():
    common_used_words_data:pd.DataFrame = pd.read_csv('commonlyused.csv')
-   # such index der ersten 1
-   common_used_words_data = common_used_words_data.loc[common_used_words_data['count']>1]
-   #282807-113610
-   #common_used_words_data.drop(common_used_words_data.tail(169197).index, inplace=True)
-   #print(common_used_words_data)
-   # letzte Wvokommen der 1 neben wort
-   common_used_words_data.to_csv('commonlyusedcleaned.csv', index=False)
+   common_used_words_data = common_used_words_data.loc[common_used_words_data['count']>200]
+   common_words:pd.DataFrame = common_used_words_data
+   return common_words
+   #common_used_words_data.to_csv('commonlyusedcleaned.csv', index=False)
+
+#Cleanup-CommonUsedWords
+def getUncommonUsedWords()->pd.DataFrame:
+    print('start uncommon words')
+    common_used_words_data:pd.DataFrame = pd.read_csv('commonlyused.csv').astype({'word': str, 'count': int})
+    uncommon_used_words_data = common_used_words_data.loc[common_used_words_data['count'] < 200]
+    return uncommon_used_words_data
 
 
 #download once and store local the corpora stopwords
@@ -67,9 +63,7 @@ def removeStopWordsFromItemDescription(train_data):
     stop = useStopWordsLocal()
     train_data = train_data[train_data['item_description'].notnull()]
     train_data = train_data.assign(item_description=train_data.item_description.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
-    
     train_data['item_description_without_stopwords'] = train_data['item_description'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
-    
     return train_data
 
 #Aufgabe 6 
@@ -136,9 +130,21 @@ def browse_cache_data():
 def main():
     #train_data = categoryFlatten(browse_cache_data())
     train_data = removeStopWordsFromItemDescription(browse_cache_data())
+     #getMostCommonUsedWords(train_data)
+    uncommonly_used = getUncommonUsedWords() 
+   
+    #for word in tqdm(uncommonly_used['word']):
+       # train_data['item_description_without_stopwords'] = train_data['item_description_without_stopwords'].str.replace(word, '')
+
+    #train_data['item_description_common_words'] = train_data['item_description_without_stopwords'].str.replace("|".join(uncommonly_used['word']), '')
+    train_data['item_description_common_words'] = train_data['item_description_without_stopwords'].apply(lambda x: ' '.join([word for word in x.split() if word not in (uncommonly_used['word'])]))
+    s=train_data.item_description_common_words.str.get_dummies(sep=' ')
+    print(s.tail())
+    #pd.get_dummies(df, columns=['type'])
     #fuzzySearchCategoryInDescription(train_data)
-    getMostCommonUsedWords(train_data)
-    cleanUpCommonUsedWords()
+   
+    
+
    
 
 if __name__ == '__main__':
