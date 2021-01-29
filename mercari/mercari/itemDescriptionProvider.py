@@ -14,7 +14,7 @@ from typing import Protocol
 import os
 import string
 from google.cloud import bigquery
-from sklearn.feature_extraction.text import TfidfVectorizer 
+from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -66,7 +66,7 @@ def removeStopWordsFromItemDescription(train_data):
     train_data['item_description_without_stopwords'] = train_data['item_description'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
     return train_data
 
-#Aufgabe 6 
+#Aufgabe 6
 def fuzzySearchCategoryInDescription(train_data):
     flattenCategories = {'cat0', 'cat1', 'cat2', 'cat3', 'cat4'}
     for categoryColumn in flattenCategories:
@@ -78,9 +78,9 @@ def fuzzySearchCategoryInDescription(train_data):
             corr = (filtered / categoryTotal) * 100
             if corr > 0:
                 newDataWithCategoryNameCorr.append([categoryName, corr])
-        
+
         data = pd.DataFrame(newDataWithCategoryNameCorr, columns=['category', 'corr'])
-    
+
         chart = alt.Chart(data).mark_bar().encode(
             x=alt.X('category', axis=alt.Axis(title='Category Name')),
             y=alt.Y('corr', axis=alt.Axis(title='Category name and description correlation'))
@@ -131,8 +131,8 @@ def main():
     #train_data = categoryFlatten(browse_cache_data())
     train_data = removeStopWordsFromItemDescription(browse_cache_data())
      #getMostCommonUsedWords(train_data)
-    uncommonly_used = getUncommonUsedWords() 
-   
+    uncommonly_used = getUncommonUsedWords()
+
     #for word in tqdm(uncommonly_used['word']):
        # train_data['item_description_without_stopwords'] = train_data['item_description_without_stopwords'].str.replace(word, '')
 
@@ -142,10 +142,10 @@ def main():
     print(s.tail())
     #pd.get_dummies(df, columns=['type'])
     #fuzzySearchCategoryInDescription(train_data)
-   
-    
 
-   
+
+
+
 
 if __name__ == '__main__':
     main()
@@ -153,6 +153,6 @@ if __name__ == '__main__':
 
 
 
- 
+
 
 
