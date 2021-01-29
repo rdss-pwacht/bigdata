@@ -1,5 +1,6 @@
 # from categoryProvider import categoryFlatten
 import nltk
+import logging
 from nltk.corpus import stopwords
 from pathlib import Path
 import altair as alt
@@ -11,6 +12,8 @@ from typing import Callable
 from typing import Protocol
 import os
 from google.cloud import bigquery
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -49,7 +52,7 @@ def cleanUpCommonUsedWords():
 
 # Cleanup-CommonUsedWords
 def getUncommonUsedWords() -> pd.DataFrame:
-    print("start uncommon words")
+    logger.info("start uncommon words")
     common_used_words_data: pd.DataFrame = pd.read_csv("commonlyused.csv").astype(
         {"word": str, "count": int}
     )
@@ -159,15 +162,18 @@ def cache_dataframe(
     return factory
 
 
-def browse_cache_data():
+def browse_cache_data() -> pd.DataFrame:
+    logger.info("Loading data...")
     my_cache_conf = MyCacheConfig(True, "./cache_dir")
     result = cache_dataframe(table_id, browse_table_data, project, table_id)(
         my_cache_conf
     )
+    logger.info("Done loading data")
     return result
 
 
 def main():
+    logger.info("Starting application...")
     # train_data = categoryFlatten(browse_cache_data())
     train_data = removeStopWordsFromItemDescription(browse_cache_data())
     getMostCommonUsedWords(train_data)
@@ -188,6 +194,7 @@ def main():
     print(s.tail())
     # pd.get_dummies(df, columns=['type'])
     # fuzzySearchCategoryInDescription(train_data)
+    logger.info("Application terminated successfully")
 
 
 if __name__ == "__main__":
