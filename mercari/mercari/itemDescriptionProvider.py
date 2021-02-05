@@ -175,22 +175,28 @@ def browse_cache_data() -> pd.DataFrame:
 def main():
     logger.info("Starting application...")
     # train_data = categoryFlatten(browse_cache_data())
-    train_data = removeStopWordsFromItemDescription(browse_cache_data())
-    getMostCommonUsedWords(train_data)
-    uncommonly_used = getUncommonUsedWords()
+    #train_data = removeStopWordsFromItemDescription(browse_cache_data())
+    #getMostCommonUsedWords(train_data)
+    #uncommonly_used = getUncommonUsedWords()
 
     # for word in tqdm(uncommonly_used['word']):
     # train_data['item_description_without_stopwords'] = train_data['item_description_without_stopwords'].str.replace(word, '')
 
     # train_data['item_description_common_words'] = train_data['item_description_without_stopwords'].str.replace("|".join(uncommonly_used['word']), '')
-    train_data["item_description_common_words"] = train_data[
-        "item_description_without_stopwords"
-    ].apply(
-        lambda x: " ".join(
-            [word for word in x.split() if word not in (uncommonly_used["word"])]
-        )
-    )
-    s = train_data.item_description_common_words.str.get_dummies(sep=" ")
+    #train_data["item_description_common_words"] = train_data[
+    #    "item_description_without_stopwords"
+    #].apply(
+    #   lambda x: " ".join(
+    #        [word for word in x.split() if word not in (uncommonly_used["word"])]
+    #    )
+    #)
+
+    #drop_columns = ["train_id", "name", "item_condition_id", "shipping", "item_description", "item_description_without_stopwords", "brand_name", "category_name"]
+    #train_data.drop(columns=drop_columns, axis=0, inplace=True)
+    #train_data.to_csv("price2itemdescriptioncommonwords.csv", index=False)
+
+    df = pd.read_csv("price2itemdescriptioncommonwords.csv")
+    s = df.item_description_common_words.str.get_dummies(sep=" ")
     print(s.tail())
     # pd.get_dummies(df, columns=['type'])
     # fuzzySearchCategoryInDescription(train_data)
