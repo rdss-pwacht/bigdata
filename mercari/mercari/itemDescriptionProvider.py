@@ -1,13 +1,9 @@
 # from categoryProvider import categoryFlatten
 import logging
-import os
 import re
 
 from pathlib import Path
-from typing import Any
-from typing import Callable
-from typing import NamedTuple
-from typing import Protocol
+from typing import Iterable
 
 import altair as alt
 import nltk
@@ -15,6 +11,8 @@ import pandas as pd
 
 from google.cloud import bigquery
 from nltk.corpus import stopwords
+
+import mercari.cache as cache
 
 
 logging.basicConfig(
@@ -32,45 +30,34 @@ pd.options.mode.chained_assignment = None  # default='warn'
 project = "rd-rdss-playground"
 table_id = "mercari_price.train"
 
+
 # Aufgabe 4 Find the most commonly used words in the item_description column.
-
-
-def getMostCommonUsedWords(train_data):
-    df = (
+def compute_word_counts(train_data: pd.DataFrame) -> pd.DataFrame:
+    return (
         train_data.item_description_without_stopwords.str.split(expand=True)
         .stack()
         .value_counts()
         .rename_axis("word")
         .reset_index(name="count")
     )
-    df.to_csv("commonlyused.csv", index=False)
 
 
-# Cleanup-CommonUsedWords
-def cleanUpCommonUsedWords():
-    common_used_words_data: pd.DataFrame = pd.read_csv("commonlyused.csv")
-    common_used_words_data = common_used_words_data.loc[
-        common_used_words_data["count"] > 200
-    ]
-    common_words: pd.DataFrame = common_used_words_data
-    return common_words
+# find common words
+def get_word_counts_gt_threshold(
+    word_counts: pd.DataFrame, threshold: int = 200
+) -> pd.DataFrame:
+    return word_counts.loc[word_counts["count"] > threshold].reset_index(drop=True)
 
 
-# Cleanup-CommonUsedWords
-def getUncommonUsedWords() -> pd.DataFrame:
-    logger.info("start uncommon words")
-    common_used_words_data: pd.DataFrame = pd.read_csv("commonlyused.csv").astype(
-        {"word": str, "count": int}
-    )
-    uncommon_used_words_data = common_used_words_data.loc[
-        common_used_words_data["count"] < 200
-    ]
-    logger.info("found uncommon words")
-    return uncommon_used_words_data
+# find uncommon words
+def get_word_counts_le_threshold(
+    word_counts: pd.DataFrame, threshold: int = 200
+) -> pd.DataFrame:
+    return word_counts.loc[word_counts["count"] <= threshold].reset_index(drop=True)
 
 
 # download once and store local the corpora stopwords
-def useStopWordsLocal():
+def use_stopwords_local():
     path = str(Path().absolute())
     if Path(path + "/corpora/stopwords/").is_dir():
         nltk.data.path.append(path)
@@ -81,14 +68,13 @@ def useStopWordsLocal():
     return set(stopwords.words("english"))
 
 
-# Aufgabe 5 Remove words from the item_description that carry no information, e.g. "the", "but", "a" "is" etc.
-def removeStopWordsFromItemDescription(train_data):
-    stop = useStopWordsLocal()
+# Aufgabe 5 Remove words from the item_description that carry no information
+# e.g. "the", "but", "a" "is" etc.
+def remove_stopwords_from_item_description(train_data: pd.DataFrame) -> pd.DataFrame:
+    stop = use_stopwords_local()
     train_data = train_data[train_data["item_description"].notnull()]
-    train_data = train_data.assign(
-        item_description=train_data.item_description.apply(
-            lambda s: re.sub(r"[^A-Za-z0-9 ]+", "", s.casefold())
-        )
+    train_data["item_description"] = train_data["item_description"].apply(
+        lambda s: re.sub(r"[^A-Za-z0-9 ]+", "", s.casefold())
     )
     train_data["item_description_without_stopwords"] = train_data[
         "item_description"
@@ -97,7 +83,7 @@ def removeStopWordsFromItemDescription(train_data):
 
 
 # Aufgabe 6
-def fuzzySearchCategoryInDescription(train_data):
+def fuzzy_search_category_in_desc(train_data):
     flattenCategories = {"cat0", "cat1", "cat2", "cat3", "cat4"}
     for categoryColumn in flattenCategories:
         categoryNames = train_data[categoryColumn].dropna().unique()
@@ -136,63 +122,55 @@ def browse_table_data(project, table_id):
     return dataframe
 
 
-class MyCacheConfig(NamedTuple):
-    enabled: bool
-    directory: str
-
-
-class _CacheConfig(Protocol):
-    enabled: bool
-    directory: str
-
-
-def cache_dataframe(
-    cache_id: str,
-    cache_miss_callback: Callable[..., pd.DataFrame],
-    *args: Any,
-    **kwargs: Any,
-) -> Callable[[_CacheConfig], pd.DataFrame]:
-    def factory(cache_config: _CacheConfig) -> pd.DataFrame:
-        if cache_config.enabled:
-            cache_dir = cache_config.directory
-            os.makedirs(cache_dir, exist_ok=True)
-            file_path = f"{cache_dir}/{cache_id}.pkl.bz2"
-            if os.path.exists(file_path):
-                result = pd.read_pickle(file_path)
-            else:
-                result = cache_miss_callback(*args, **kwargs)
-                result.to_pickle(file_path)
-        else:
-            result = cache_miss_callback(*args, **kwargs)
-        return result
-
-    return factory
-
-
-def browse_cache_data() -> pd.DataFrame:
-    logger.info("Loading data...")
-    my_cache_conf = MyCacheConfig(True, "./cache_dir")
-    result = cache_dataframe(table_id, browse_table_data, project, table_id)(
-        my_cache_conf
+def drop_uncommon_words_from_desc(
+    data: pd.DataFrame, uncommon_words: Iterable[str]
+) -> pd.DataFrame:
+    return data.assign(
+        item_description_common_words=data["item_description_without_stopwords"].apply(
+            lambda x: " ".join(
+                [word for word in x.split() if word not in (uncommon_words)]
+            )
+        )
     )
-    logger.info("Done loading data")
-    return result
 
 
 def main():
     logger.info("Starting application...")
-    # train_data = categoryFlatten(browse_cache_data())
-    train_data = removeStopWordsFromItemDescription(browse_cache_data())
-    getMostCommonUsedWords(train_data)
-    uncommonly_used = getUncommonUsedWords()
+    cache_cfg = cache.DefaultCacheConfig(enabled=True, directory="./cache_dir")
+    threshold_common: int = 200
 
-    train_data["item_description_common_words"] = train_data[
-        "item_description_without_stopwords"
-    ].apply(
-        lambda x: " ".join(
-            [word for word in x.split() if word not in (uncommonly_used["word"])]
-        )
+    logger.info("Loading source data...")
+    source_df = cache.cache_dataframe(table_id, browse_table_data, project, table_id)(
+        cache_cfg
     )
+    logger.info("Done loading source data")
+
+    logger.info("Removing stopwords...")
+    train_data = cache.cache_dataframe(
+        "without_stopwords", remove_stopwords_from_item_description, source_df
+    )(cache_cfg)
+    logger.info("Removed stopwords")
+
+    logger.info("Computing word counts...")
+    word_counts = cache.cache_dataframe("word_counts", compute_word_counts, train_data)(
+        cache_cfg
+    )
+    logger.info("Computed word counts")
+
+    logger.info("Finding uncommon words...")
+    uncommonly_used = cache.cache_dataframe(
+        "uncommon_words", get_word_counts_le_threshold, word_counts, threshold_common
+    )(cache_cfg)
+    logger.info("Found uncommon words")
+
+    logger.info("Drop uncommon words from item description...")
+    train_data = cache.cache_dataframe(
+        "train_data_common",
+        drop_uncommon_words_from_desc,
+        train_data,
+        uncommonly_used["word"],
+    )(cache_cfg)
+    logger.info("Dropped uncommon words from item description")
 
     logger.info("Splitting words...")
     train_data["common_words"] = train_data["item_description_common_words"].str.split()
@@ -203,12 +181,12 @@ def main():
     not_so_small_df = small_df.explode("common_words")
     logger.info("Exploded words")
 
-    #    logger.info("Generate dummies...")
-    #    my_dummies = pd.get_dummies(not_so_small_df, prefix="", prefix_sep="")
-    #    logger.info("Generated dummies")
-    #    print(my_dummies.tail())
+    # logger.info("Generate dummies...")
+    # my_dummies = pd.get_dummies(not_so_small_df, prefix="", prefix_sep="")
+    # logger.info("Generated dummies")
+    # print(my_dummies.tail())
 
-    # fuzzySearchCategoryInDescription(train_data)
+    # fuzzy_search_category_in_desc(train_data)
     logger.info("Application terminated successfully")
 
 
