@@ -1,0 +1,19 @@
+[flake8]
+max-line-length = 89
+ignore = W503
+per-file-ignores =
+    __init__.py:F401
+    tests/*:E501
+exclude =
+    .git
+    __pycache__
+    setup.py
+    target
+    build
+    .idea
+    .venv
+    .tox
+    .mypy_cache
+    .pytest_cache
+    .vscode
+    .github
