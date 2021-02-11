@@ -4,6 +4,7 @@ import re
 
 from pathlib import Path
 from typing import Iterable
+from typing import Set
 
 import altair as alt
 import nltk
@@ -57,7 +58,7 @@ def get_word_counts_le_threshold(
 
 
 # download once and store local the corpora stopwords
-def use_stopwords_local():
+def use_stopwords_local() -> Set[str]:
     path = str(Path().absolute())
     if Path(path + "/corpora/stopwords/").is_dir():
         nltk.data.path.append(path)
@@ -83,7 +84,7 @@ def remove_stopwords_from_item_description(train_data: pd.DataFrame) -> pd.DataF
 
 
 # Aufgabe 6
-def fuzzy_search_category_in_desc(train_data):
+def fuzzy_search_category_in_desc(train_data: pd.DataFrame) -> None:
     flattenCategories = {"cat0", "cat1", "cat2", "cat3", "cat4"}
     for categoryColumn in flattenCategories:
         categoryNames = train_data[categoryColumn].dropna().unique()
@@ -115,7 +116,7 @@ def fuzzy_search_category_in_desc(train_data):
         chart.save(categoryColumn + "_correlation_with_description.html")
 
 
-def browse_table_data(project, table_id):
+def browse_table_data(project, table_id) -> pd.DataFrame:
     client = bigquery.Client(project)
     rows_iter = client.list_rows(table_id)
     dataframe = rows_iter.to_dataframe()
@@ -134,7 +135,7 @@ def drop_uncommon_words_from_desc(
     )
 
 
-def main():
+def main() -> int:
     logger.info("Starting application...")
     cache_cfg = cache.DefaultCacheConfig(enabled=True, directory="./cache_dir")
     threshold_common: int = 200
@@ -188,6 +189,7 @@ def main():
 
     # fuzzy_search_category_in_desc(train_data)
     logger.info("Application terminated successfully")
+    return 0
 
 
 if __name__ == "__main__":
