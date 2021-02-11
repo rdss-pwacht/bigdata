@@ -25,6 +25,9 @@ mypy = "^0.800"
 isort = "^5.7.0"
 black = "^20.8b1"
 
+[tool.poetry.scripts]
+mercari = "mercari.main:main"
+
 [tool.black]
 line-length = 89
 
