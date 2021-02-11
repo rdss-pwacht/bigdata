@@ -1,17 +1,20 @@
 # from categoryProvider import categoryFlatten
-import nltk
 import logging
-from nltk.corpus import stopwords
-from pathlib import Path
-import altair as alt
-import pandas as pd
+import os
 import re
-from typing import NamedTuple
+
+from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import NamedTuple
 from typing import Protocol
-import os
+
+import altair as alt
+import nltk
+import pandas as pd
+
 from google.cloud import bigquery
+from nltk.corpus import stopwords
 
 
 logging.basicConfig(
@@ -179,7 +182,6 @@ def browse_cache_data() -> pd.DataFrame:
 def main():
     logger.info("Starting application...")
     # train_data = categoryFlatten(browse_cache_data())
-    # train_data = removeStopWordsFromItemDescription(browse_cache_data())
     train_data = removeStopWordsFromItemDescription(browse_cache_data())
     getMostCommonUsedWords(train_data)
     uncommonly_used = getUncommonUsedWords()
@@ -201,10 +203,10 @@ def main():
     not_so_small_df = small_df.explode("common_words")
     logger.info("Exploded words")
 
-#    logger.info("Generate dummies...")
-#    my_dummies = pd.get_dummies(not_so_small_df, prefix="", prefix_sep="")
-#    logger.info("Generated dummies")
-#    print(my_dummies.tail())
+    #    logger.info("Generate dummies...")
+    #    my_dummies = pd.get_dummies(not_so_small_df, prefix="", prefix_sep="")
+    #    logger.info("Generated dummies")
+    #    print(my_dummies.tail())
 
     # fuzzySearchCategoryInDescription(train_data)
     logger.info("Application terminated successfully")
