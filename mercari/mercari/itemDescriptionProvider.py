@@ -13,6 +13,15 @@ from typing import Protocol
 import os
 from google.cloud import bigquery
 
+
+logging.basicConfig(
+    level=logging.INFO,
+    style="{",
+    format="{asctime}.{msecs:03.0f} {levelname:>7s} {process:d} "
+    + "--- [{threadName:>15.15}] {name:<40.40s} : {message}",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
 logger: logging.Logger = logging.getLogger(__name__)
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -24,7 +33,6 @@ table_id = "mercari_price.train"
 
 
 def getMostCommonUsedWords(train_data):
-    # train_data = train_data.assign(item_description=train_data.item_description_without_stopwords.apply(lambda s:re.sub(r'[^A-Za-z0-9 ]+', '', s.casefold())))
     df = (
         train_data.item_description_without_stopwords.str.split(expand=True)
         .stack()
@@ -32,10 +40,6 @@ def getMostCommonUsedWords(train_data):
         .rename_axis("word")
         .reset_index(name="count")
     )
-
-    # df = commonlyused.to_frame()
-    # print(df.tail(200))
-    # df.columns = ['word', 'count']
     df.to_csv("commonlyused.csv", index=False)
 
 
@@ -47,7 +51,6 @@ def cleanUpCommonUsedWords():
     ]
     common_words: pd.DataFrame = common_used_words_data
     return common_words
-    # common_used_words_data.to_csv('commonlyusedcleaned.csv', index=False)
 
 
 # Cleanup-CommonUsedWords
@@ -59,6 +62,7 @@ def getUncommonUsedWords() -> pd.DataFrame:
     uncommon_used_words_data = common_used_words_data.loc[
         common_used_words_data["count"] < 200
     ]
+    logger.info("found uncommon words")
     return uncommon_used_words_data
 
 
@@ -175,30 +179,33 @@ def browse_cache_data() -> pd.DataFrame:
 def main():
     logger.info("Starting application...")
     # train_data = categoryFlatten(browse_cache_data())
-    #train_data = removeStopWordsFromItemDescription(browse_cache_data())
-    #getMostCommonUsedWords(train_data)
-    #uncommonly_used = getUncommonUsedWords()
+    # train_data = removeStopWordsFromItemDescription(browse_cache_data())
+    train_data = removeStopWordsFromItemDescription(browse_cache_data())
+    getMostCommonUsedWords(train_data)
+    uncommonly_used = getUncommonUsedWords()
 
-    # for word in tqdm(uncommonly_used['word']):
-    # train_data['item_description_without_stopwords'] = train_data['item_description_without_stopwords'].str.replace(word, '')
+    train_data["item_description_common_words"] = train_data[
+        "item_description_without_stopwords"
+    ].apply(
+        lambda x: " ".join(
+            [word for word in x.split() if word not in (uncommonly_used["word"])]
+        )
+    )
 
-    # train_data['item_description_common_words'] = train_data['item_description_without_stopwords'].str.replace("|".join(uncommonly_used['word']), '')
-    #train_data["item_description_common_words"] = train_data[
-    #    "item_description_without_stopwords"
-    #].apply(
-    #   lambda x: " ".join(
-    #        [word for word in x.split() if word not in (uncommonly_used["word"])]
-    #    )
-    #)
+    logger.info("Splitting words...")
+    train_data["common_words"] = train_data["item_description_common_words"].str.split()
+    logger.info("Done splitting words")
 
-    #drop_columns = ["train_id", "name", "item_condition_id", "shipping", "item_description", "item_description_without_stopwords", "brand_name", "category_name"]
-    #train_data.drop(columns=drop_columns, axis=0, inplace=True)
-    #train_data.to_csv("price2itemdescriptioncommonwords.csv", index=False)
+    logger.info("Explode words...")
+    small_df = train_data[["price", "common_words"]]
+    not_so_small_df = small_df.explode("common_words")
+    logger.info("Exploded words")
 
-    df = pd.read_csv("price2itemdescriptioncommonwords.csv")
-    s = df.item_description_common_words.str.get_dummies(sep=" ")
-    print(s.tail())
-    # pd.get_dummies(df, columns=['type'])
+#    logger.info("Generate dummies...")
+#    my_dummies = pd.get_dummies(not_so_small_df, prefix="", prefix_sep="")
+#    logger.info("Generated dummies")
+#    print(my_dummies.tail())
+
     # fuzzySearchCategoryInDescription(train_data)
     logger.info("Application terminated successfully")
 
