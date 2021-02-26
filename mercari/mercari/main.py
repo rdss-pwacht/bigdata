@@ -12,6 +12,7 @@ import pandas as pd
 
 from google.cloud import bigquery
 from nltk.corpus import stopwords
+from scipy import stats
 
 import mercari.cache as cache
 
@@ -181,6 +182,27 @@ def main() -> int:
     small_df = train_data[["price", "common_words"]]
     not_so_small_df = small_df.explode("common_words")
     logger.info("Exploded words")
+
+    logger.info("Grouping...")
+    # get price dataframes per word
+    grpd = [x["price"] for _, x in not_so_small_df.groupby("common_words")]
+    logger.info("Done grouping")
+
+    # Pseudocode. Google how to do this.
+    # not_so_small_df.groupby("common_words")\
+    #    .sort_by("price", desc=True) \
+    #    .take_top(10)
+
+    # is there a correlation between price and word?
+    F, p = stats.f_oneway(*grpd)
+    print(F)
+    print(p)
+
+    # average price per word
+    avg_prices_by_word = not_so_small_df.groupby("common_words").agg(
+        avg_price=("price", "mean")
+    )
+    print(avg_prices_by_word)
 
     # logger.info("Generate dummies...")
     # my_dummies = pd.get_dummies(not_so_small_df, prefix="", prefix_sep="")
