@@ -48,14 +48,18 @@ def compute_word_counts(train_data: pd.DataFrame) -> pd.DataFrame:
 def get_word_counts_gt_threshold(
     word_counts: pd.DataFrame, threshold: int = 200
 ) -> pd.DataFrame:
-    return word_counts.loc[word_counts["count"] > threshold].reset_index(drop=True)
+    return word_counts.loc[word_counts["count"] > threshold].reset_index(
+        drop=True
+    )
 
 
 # find uncommon words
 def get_word_counts_le_threshold(
     word_counts: pd.DataFrame, threshold: int = 200
 ) -> pd.DataFrame:
-    return word_counts.loc[word_counts["count"] <= threshold].reset_index(drop=True)
+    return word_counts.loc[word_counts["count"] <= threshold].reset_index(
+        drop=True
+    )
 
 
 # download once and store local the corpora stopwords
@@ -72,7 +76,9 @@ def use_stopwords_local() -> Set[str]:
 
 # Aufgabe 5 Remove words from the item_description that carry no information
 # e.g. "the", "but", "a" "is" etc.
-def remove_stopwords_from_item_description(train_data: pd.DataFrame) -> pd.DataFrame:
+def remove_stopwords_from_item_description(
+    train_data: pd.DataFrame,
+) -> pd.DataFrame:
     stop = use_stopwords_local()
     train_data = train_data[train_data["item_description"].notnull()]
     train_data["item_description"] = train_data["item_description"].apply(
@@ -80,41 +86,10 @@ def remove_stopwords_from_item_description(train_data: pd.DataFrame) -> pd.DataF
     )
     train_data["item_description_without_stopwords"] = train_data[
         "item_description"
-    ].apply(lambda x: " ".join([word for word in x.split() if word not in (stop)]))
+    ].apply(
+        lambda x: " ".join([word for word in x.split() if word not in (stop)])
+    )
     return train_data
-
-
-# Aufgabe 6
-def fuzzy_search_category_in_desc(train_data: pd.DataFrame) -> None:
-    flattenCategories = {"cat0", "cat1", "cat2", "cat3", "cat4"}
-    for categoryColumn in flattenCategories:
-        categoryNames = train_data[categoryColumn].dropna().unique()
-        newDataWithCategoryNameCorr = []
-        for categoryName in categoryNames:
-            categoryTotal = (train_data[categoryColumn].values == categoryName).sum()
-            filtered = train_data[
-                train_data["item_description_without_stopwords"].str.contains(
-                    categoryName, na=False
-                )
-            ].shape[0]
-            corr = (filtered / categoryTotal) * 100
-            if corr > 0:
-                newDataWithCategoryNameCorr.append([categoryName, corr])
-
-        data = pd.DataFrame(newDataWithCategoryNameCorr, columns=["category", "corr"])
-
-        chart = (
-            alt.Chart(data)
-            .mark_bar()
-            .encode(
-                x=alt.X("category", axis=alt.Axis(title="Category Name")),
-                y=alt.Y(
-                    "corr",
-                    axis=alt.Axis(title="Category name and description correlation"),
-                ),
-            )
-        )
-        chart.save(categoryColumn + "_correlation_with_description.html")
 
 
 def browse_table_data(project, table_id) -> pd.DataFrame:
@@ -128,13 +103,22 @@ def drop_uncommon_words_from_desc(
     data: pd.DataFrame, uncommon_words: Iterable[str]
 ) -> pd.DataFrame:
     return data.assign(
-        item_description_common_words=data["item_description_without_stopwords"].apply(
+        item_description_common_words=data[
+            "item_description_without_stopwords"
+        ].apply(
             lambda x: " ".join(
                 [word for word in x.split() if word not in (uncommon_words)]
             )
         )
     )
 
+# is there a correlation between price and word?
+def anova_oneway(*word_groups):
+    logger.info("Anowa F i p values...")
+    F, p = stats.f_oneway(*word_groups)
+    print(F)
+    print(p)
+    logger.info("Calculated ANOWA..")
 
 def main() -> int:
     logger.info("Starting application...")
@@ -142,9 +126,9 @@ def main() -> int:
     threshold_common: int = 200
 
     logger.info("Loading source data...")
-    source_df = cache.cache_dataframe(table_id, browse_table_data, project, table_id)(
-        cache_cfg
-    )
+    source_df = cache.cache_dataframe(
+        table_id, browse_table_data, project, table_id
+    )(cache_cfg)
     logger.info("Done loading source data")
 
     logger.info("Removing stopwords...")
@@ -154,14 +138,17 @@ def main() -> int:
     logger.info("Removed stopwords")
 
     logger.info("Computing word counts...")
-    word_counts = cache.cache_dataframe("word_counts", compute_word_counts, train_data)(
-        cache_cfg
-    )
+    word_counts = cache.cache_dataframe(
+        "word_counts", compute_word_counts, train_data
+    )(cache_cfg)
     logger.info("Computed word counts")
 
     logger.info("Finding uncommon words...")
     uncommonly_used = cache.cache_dataframe(
-        "uncommon_words", get_word_counts_le_threshold, word_counts, threshold_common
+        "uncommon_words",
+        get_word_counts_le_threshold,
+        word_counts,
+        threshold_common,
     )(cache_cfg)
     logger.info("Found uncommon words")
 
@@ -175,7 +162,9 @@ def main() -> int:
     logger.info("Dropped uncommon words from item description")
 
     logger.info("Splitting words...")
-    train_data["common_words"] = train_data["item_description_common_words"].str.split()
+    train_data["common_words"] = train_data[
+        "item_description_common_words"
+    ].str.split()
     logger.info("Done splitting words")
 
     logger.info("Explode words...")
@@ -187,29 +176,24 @@ def main() -> int:
     # get price dataframes per word
     grpd = [x["price"] for _, x in not_so_small_df.groupby("common_words")]
     logger.info("Done grouping")
+    anova_oneway(*grpd)
 
-    # Pseudocode. Google how to do this.
-    # not_so_small_df.groupby("common_words")\
-    #    .sort_by("price", desc=True) \
-    #    .take_top(10)
+    logger.info("Group words limited to 10...")
+    df_groups = not_so_small_df.groupby("common_words")
+    df_groups_list = []
+    for name,group in df_groups:
+        grpd_smallersize = group.price.head(10).tolist()
+        df_groups_list.append(grpd_smallersize)
 
-    # is there a correlation between price and word?
-    F, p = stats.f_oneway(*grpd)
-    print(F)
-    print(p)
-
+    logger.info("Done grouping smaller groups")
+    anova_oneway(*df_groups_list)
+    
     # average price per word
     avg_prices_by_word = not_so_small_df.groupby("common_words").agg(
         avg_price=("price", "mean")
     )
-    print(avg_prices_by_word)
+    #print(avg_prices_by_word)
 
-    # logger.info("Generate dummies...")
-    # my_dummies = pd.get_dummies(not_so_small_df, prefix="", prefix_sep="")
-    # logger.info("Generated dummies")
-    # print(my_dummies.tail())
-
-    # fuzzy_search_category_in_desc(train_data)
     logger.info("Application terminated successfully")
     return 0
 
