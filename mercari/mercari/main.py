@@ -12,6 +12,7 @@ import pandas as pd
 
 from google.cloud import bigquery
 from nltk.corpus import stopwords
+from nltk.util import ngrams
 from scipy import stats
 
 import mercari.cache as cache
@@ -52,12 +53,19 @@ def get_word_counts_gt_threshold(
         drop=True
     )
 
-
 # find uncommon words
 def get_word_counts_le_threshold(
     word_counts: pd.DataFrame, threshold: int = 200
 ) -> pd.DataFrame:
     return word_counts.loc[word_counts["count"] <= threshold].reset_index(
+        drop=True
+    )
+
+# find common words
+def get_word_counts_ge_threshold(
+    word_counts: pd.DataFrame, threshold: int = 200
+) -> pd.DataFrame:
+    return word_counts.loc[word_counts["count"] >= threshold].reset_index(
         drop=True
     )
 
@@ -166,7 +174,18 @@ def main() -> int:
         "item_description_common_words"
     ].str.split()
     logger.info("Done splitting words")
+    logger.info("Ngram words with output print...")
 
+    output = train_data["common_words"].apply(lambda x: list(nltk.ngrams(x, 2)))    
+    toplist = output.explode().value_counts().rename_axis("tuple").reset_index(name="count")
+    filtered_toplist = get_word_counts_ge_threshold(toplist, 5000)
+    for index,row in filtered_toplist.iterrows(): 
+        searchword = ' '.join(row["tuple"])
+        replaceword = '-'.join(row["tuple"])
+        train_data["common_words"] = train_data["common_words"].str.replace(searchword, replaceword)
+        #print(train_data.loc[train_data["common_words"].apply(lambda x: replaceword in x )])
+
+    
     logger.info("Explode words...")
     small_df = train_data[["price", "common_words"]]
     not_so_small_df = small_df.explode("common_words")
@@ -192,7 +211,7 @@ def main() -> int:
     avg_prices_by_word = not_so_small_df.groupby("common_words").agg(
         avg_price=("price", "mean")
     )
-    #print(avg_prices_by_word)
+    print(avg_prices_by_word)
 
     logger.info("Application terminated successfully")
     return 0
