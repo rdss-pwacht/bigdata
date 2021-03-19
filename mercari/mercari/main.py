@@ -16,6 +16,7 @@ from nltk.util import ngrams
 from scipy import stats
 
 import mercari.cache as cache
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 logging.basicConfig(
@@ -139,6 +140,11 @@ def main() -> int:
     )(cache_cfg)
     logger.info("Done loading source data")
 
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform(source_df['item_description'].astype(str))
+    print(X)
+    exit()
+
     logger.info("Removing stopwords...")
     train_data = cache.cache_dataframe(
         "without_stopwords", remove_stopwords_from_item_description, source_df
@@ -176,15 +182,18 @@ def main() -> int:
     logger.info("Done splitting words")
     logger.info("Ngram words with output print...")
 
-    output = train_data["common_words"].apply(lambda x: list(nltk.ngrams(x, 2)))    
+    output = train_data["common_words"].apply(lambda x: list(nltk.ngrams(x, 2)))  
     toplist = output.explode().value_counts().rename_axis("tuple").reset_index(name="count")
+    
     filtered_toplist = get_word_counts_ge_threshold(toplist, 5000)
-    for index,row in filtered_toplist.iterrows(): 
+    for index,row in filtered_toplist.iterrows():
         searchword = ' '.join(row["tuple"])
         replaceword = '-'.join(row["tuple"])
-        train_data["common_words"] = train_data["common_words"].str.replace(searchword, replaceword)
+        train_data["common_words_new"] = train_data["item_description_common_words"].str.replace(searchword, replaceword)
         #print(train_data.loc[train_data["common_words"].apply(lambda x: replaceword in x )])
 
+    train_data['common_words'] = train_data['common_words_new'].str.split()
+    print(train_data['common_words'].head())
     
     logger.info("Explode words...")
     small_df = train_data[["price", "common_words"]]
