@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Iterable
 from typing import Set
 
-import altair as alt
 import nltk
 import pandas as pd
 
@@ -14,9 +13,9 @@ from google.cloud import bigquery
 from nltk.corpus import stopwords
 from nltk.util import ngrams
 from scipy import stats
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 import mercari.cache as cache
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 logging.basicConfig(
@@ -54,6 +53,7 @@ def get_word_counts_gt_threshold(
         drop=True
     )
 
+
 # find uncommon words
 def get_word_counts_le_threshold(
     word_counts: pd.DataFrame, threshold: int = 200
@@ -61,6 +61,7 @@ def get_word_counts_le_threshold(
     return word_counts.loc[word_counts["count"] <= threshold].reset_index(
         drop=True
     )
+
 
 # find common words
 def get_word_counts_ge_threshold(
@@ -121,6 +122,7 @@ def drop_uncommon_words_from_desc(
         )
     )
 
+
 # is there a correlation between price and word?
 def anova_oneway(*word_groups):
     logger.info("Anowa F i p values...")
@@ -128,6 +130,7 @@ def anova_oneway(*word_groups):
     print(F)
     print(p)
     logger.info("Calculated ANOWA..")
+
 
 def main() -> int:
     logger.info("Starting application...")
@@ -140,10 +143,17 @@ def main() -> int:
     )(cache_cfg)
     logger.info("Done loading source data")
 
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(source_df['item_description'].astype(str))
-    print(X)
-    exit()
+    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(2, 2))
+    X = vectorizer.fit_transform(source_df["item_description"].astype(str))
+    feature_names = vectorizer.get_feature_names()
+    corpus_index = [n for n in source_df["item_description"]]
+    rows, cols = X.nonzero()
+    counter = 0
+    for row, col in zip(rows, cols):
+        counter = counter + 1
+        print((feature_names[col], corpus_index[row]), X[row, col])
+        if counter == 10:
+            exit()
 
     logger.info("Removing stopwords...")
     train_data = cache.cache_dataframe(
@@ -182,19 +192,27 @@ def main() -> int:
     logger.info("Done splitting words")
     logger.info("Ngram words with output print...")
 
-    output = train_data["common_words"].apply(lambda x: list(nltk.ngrams(x, 2)))  
-    toplist = output.explode().value_counts().rename_axis("tuple").reset_index(name="count")
-    
-    filtered_toplist = get_word_counts_ge_threshold(toplist, 5000)
-    for index,row in filtered_toplist.iterrows():
-        searchword = ' '.join(row["tuple"])
-        replaceword = '-'.join(row["tuple"])
-        train_data["common_words_new"] = train_data["item_description_common_words"].str.replace(searchword, replaceword)
-        #print(train_data.loc[train_data["common_words"].apply(lambda x: replaceword in x )])
+    output = train_data["common_words"].apply(
+        lambda x: list(nltk.ngrams(x, 2))
+    )
+    toplist = (
+        output.explode()
+        .value_counts()
+        .rename_axis("tuple")
+        .reset_index(name="count")
+    )
 
-    train_data['common_words'] = train_data['common_words_new'].str.split()
-    print(train_data['common_words'].head())
-    
+    filtered_toplist = get_word_counts_ge_threshold(toplist, 5000)
+    for index, row in filtered_toplist.iterrows():
+        searchword = " ".join(row["tuple"])
+        replaceword = "-".join(row["tuple"])
+        train_data["common_words_new"] = train_data[
+            "item_description_common_words"
+        ].str.replace(searchword, replaceword)
+
+    train_data["common_words"] = train_data["common_words_new"].str.split()
+    print(train_data["common_words"].head())
+
     logger.info("Explode words...")
     small_df = train_data[["price", "common_words"]]
     not_so_small_df = small_df.explode("common_words")
@@ -209,13 +227,13 @@ def main() -> int:
     logger.info("Group words limited to 10...")
     df_groups = not_so_small_df.groupby("common_words")
     df_groups_list = []
-    for name,group in df_groups:
+    for name, group in df_groups:
         grpd_smallersize = group.price.head(10).tolist()
         df_groups_list.append(grpd_smallersize)
 
     logger.info("Done grouping smaller groups")
     anova_oneway(*df_groups_list)
-    
+
     # average price per word
     avg_prices_by_word = not_so_small_df.groupby("common_words").agg(
         avg_price=("price", "mean")
