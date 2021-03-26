@@ -16,7 +16,7 @@ from scipy import stats
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 import mercari.cache as cache
-
+from collections import defaultdict
 
 logging.basicConfig(
     level=logging.INFO,
@@ -143,32 +143,28 @@ def main() -> int:
     )(cache_cfg)
     logger.info("Done loading source data")
 
-    logger.info("Start TFIDF...")
-    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(2, 2), max_features=2000, sublinear_tf=True,)
-    X = vectorizer.fit_transform(source_df["item_description"].astype(str))
-    feature_names = vectorizer.get_feature_names()
-    corpus_index = [n for n in source_df["item_description"]]
-    rows, cols = X.nonzero()
-    counter = 0
-    for row, col in zip(rows, cols):
-        counter = counter + 1
-        print((feature_names[col], corpus_index[row]), X[row, col])
-        if counter == 10:
-            break
-
-    df_tfidfvect = pd.DataFrame(data = X.toarray(), columns = feature_names)
-    price_and_matrix = pd.concat([source_df["price"], df_tfidfvect], axis=1)
-    #print(price_and_matrix.tail())
-
-    logger.info("END TFIDF...")
-    exit()
-
     logger.info("Removing stopwords...")
     train_data = cache.cache_dataframe(
         "without_stopwords", remove_stopwords_from_item_description, source_df
     )(cache_cfg)
     logger.info("Removed stopwords")
 
+    logger.info("Start TFIDF...")
+    vectorizer = TfidfVectorizer(ngram_range=(2, 2), max_features=2000, sublinear_tf=True, strip_accents='unicode')
+    X = vectorizer.fit_transform(train_data["item_description_without_stopwords"].astype(str))
+    feature_names = vectorizer.get_feature_names()
+
+    features_by_gram = defaultdict(list)
+    for f, w in zip(feature_names, vectorizer.idf_):
+        features_by_gram[len(f.split(' '))].append((f, w))
+    top_n = 2
+    for gram, features in features_by_gram.items():
+        top_features = sorted(features, key=lambda x: x[1], reverse=True)[:top_n]
+        top_features = [f[0] for f in top_features]
+        print(f"{gram}-gram top:", top_features)
+
+    logger.info("END TFIDF...")
+    exit()
     logger.info("Computing word counts...")
     word_counts = cache.cache_dataframe(
         "word_counts", compute_word_counts, train_data
