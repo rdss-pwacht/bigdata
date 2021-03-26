@@ -143,7 +143,8 @@ def main() -> int:
     )(cache_cfg)
     logger.info("Done loading source data")
 
-    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(2, 2))
+    logger.info("Start TFIDF...")
+    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(2, 2), max_features=2000, sublinear_tf=True,)
     X = vectorizer.fit_transform(source_df["item_description"].astype(str))
     feature_names = vectorizer.get_feature_names()
     corpus_index = [n for n in source_df["item_description"]]
@@ -153,7 +154,14 @@ def main() -> int:
         counter = counter + 1
         print((feature_names[col], corpus_index[row]), X[row, col])
         if counter == 10:
-            exit()
+            break
+
+    df_tfidfvect = pd.DataFrame(data = X.toarray(), columns = feature_names)
+    price_and_matrix = pd.concat([source_df["price"], df_tfidfvect], axis=1)
+    #print(price_and_matrix.tail())
+
+    logger.info("END TFIDF...")
+    exit()
 
     logger.info("Removing stopwords...")
     train_data = cache.cache_dataframe(
