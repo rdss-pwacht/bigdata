@@ -2,6 +2,7 @@
 import logging
 import re
 
+from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
 from typing import Set
@@ -11,12 +12,11 @@ import pandas as pd
 
 from google.cloud import bigquery
 from nltk.corpus import stopwords
-from nltk.util import ngrams
 from scipy import stats
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 import mercari.cache as cache
-from collections import defaultdict
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -143,28 +143,49 @@ def main() -> int:
     )(cache_cfg)
     logger.info("Done loading source data")
 
-    logger.info("Removing stopwords...")
-    train_data = cache.cache_dataframe(
-        "without_stopwords", remove_stopwords_from_item_description, source_df
-    )(cache_cfg)
-    logger.info("Removed stopwords")
+    # logger.info("Removing stopwords...")
+    # train_data = cache.cache_dataframe(
+    #     "without_stopwords", remove_stopwords_from_item_description, source_df
+    # )(cache_cfg)
+    # logger.info("Removed stopwords")
 
     logger.info("Start TFIDF...")
-    vectorizer = TfidfVectorizer(ngram_range=(2, 2), max_features=2000, sublinear_tf=True, strip_accents='unicode')
-    X = vectorizer.fit_transform(train_data["item_description_without_stopwords"].astype(str))
+    stop_words = use_stopwords_local()
+    # add words that aren't in the NLTK stopwords list
+    new_stopwords = ["rm", "vs"]
+    new_stopwords_list = stop_words.union(new_stopwords)
+    vectorizer = TfidfVectorizer(
+        ngram_range=(2, 2),
+        max_features=50,
+        sublinear_tf=True,
+        strip_accents="unicode",
+        stop_words=set(new_stopwords_list),
+    )
+    source_df['item_description'].fillna('', inplace=True)
+    source_df['item_description'] = source_df['item_description'].apply(lambda x : x.replace('No description yet',''))
+    X = vectorizer.fit_transform(source_df["item_description"].astype(str))
     feature_names = vectorizer.get_feature_names()
 
     features_by_gram = defaultdict(list)
     for f, w in zip(feature_names, vectorizer.idf_):
-        features_by_gram[len(f.split(' '))].append((f, w))
-    top_n = 2
+        features_by_gram[len(f.split(" "))].append((f, w))
+    top_n = 50
     for gram, features in features_by_gram.items():
-        top_features = sorted(features, key=lambda x: x[1], reverse=True)[:top_n]
+        top_features = sorted(features, key=lambda x: x[1], reverse=True)[
+            :top_n
+        ]
         top_features = [f[0] for f in top_features]
         print(f"{gram}-gram top:", top_features)
 
+    train_data = source_df[
+        source_df.item_description.astype(str).str.contains(
+            "|".join(top_features)
+        )
+    ]
+    print(train_data[["price", "item_description"]])
+
     logger.info("END TFIDF...")
-    exit()
+
     logger.info("Computing word counts...")
     word_counts = cache.cache_dataframe(
         "word_counts", compute_word_counts, train_data
