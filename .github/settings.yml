@@ -76,3 +76,6 @@ branches:
       enforce_admins: false
       # Prevent merge commits from being pushed to matching branches
       required_linear_history: true
+      restrictions:
+        apps: ["settings"]
+        users: ["rdss-pwacht"]
