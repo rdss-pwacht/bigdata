@@ -1,0 +1,40 @@
+# Whether or not rebase-merging is enabled on this repository.
+# Defaults to `true`
+rebaseMergeAllowed: true
+
+# Whether or not squash-merging is enabled on this repository.
+# Defaults to `true`
+squashMergeAllowed: true
+
+# Whether or not PRs are merged with a merge commit on this repository.
+# Defaults to `false`
+mergeCommitAllowed: false
+
+# Automatically delete head branches after merging PRs.  Defaults to `true`.
+deleteBranchOnMerge: true
+
+# Rules for branch protection (add multiple entries to configure multiple branches)
+branchProtectionRules:
+  # Identifies the protection rule pattern. Name of the branch to be protected.
+  # Defaults to `master`
+  - pattern: master
+    # Can admins overwrite branch protection.
+    # Defaults to `true`
+    isAdminEnforced: false
+    # Number of approving reviews required to update matching branches.
+    # Defaults to `1`
+    requiredApprovingReviewCount: 2
+    # Are reviews from code owners required to update matching branches.
+    # Defaults to `false`
+    requiresCodeOwnerReviews: true
+    # Require up to date branches
+    requiresStrictStatusChecks: true
+    # List of required status check contexts that must pass for commits to be accepted to matching branches.
+    requiredStatusCheckContexts:
+      - ci
+# List of explicit permissions to add (additive only)
+permissionRules:
+  # Team slug to add to repository permissions
+  - team: team1
+    # Access level required, one of push|pull|admin
+    permission: push
