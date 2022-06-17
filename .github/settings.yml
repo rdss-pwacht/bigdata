@@ -66,8 +66,6 @@ branches:
         dismiss_stale_reviews: true
         # Blocks merge until code owners have reviewed.
         require_code_owner_reviews: false
-      bypass_pull_request_allowances:
-        users: ["rdss-pwacht"]
       # Required. Require status checks to pass before merging. Set to null to disable
       required_status_checks:
         # Required. Require branches to be up to date before merging.
@@ -78,6 +76,3 @@ branches:
       enforce_admins: false
       # Prevent merge commits from being pushed to matching branches
       required_linear_history: true
-      # Required. Restrict who can push to this branch. Team and user restrictions are only available for organization-owned repositories. Set to null to disable.
-      restrictions:
-        users: ["rdss-pwacht"]
