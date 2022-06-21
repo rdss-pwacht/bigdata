@@ -28,3 +28,6 @@ Running
 .. code-block::
 
     poetry run mercari
+
+
+Outdated!!!
